@@ -1,0 +1,22 @@
+<h2>My closed requests.</h2>
+
+<p>
+  <b>Outbaund:</b>
+  <ul>
+    <% @user_requests[:outbaund].each do |request| %>
+      <li>
+        <b>Skill:</b> <%= request[:skill] %>; <b>Requested from:</b> <%= request[:receiver_name] %>; <b>Request close date:</b> <%= request[:close_date] %>
+      </li>
+    <% end %>
+  </ul>
+</p>
+<p>
+  <b>Inbaund:</b>
+  <ul>
+    <% @user_requests[:inbaund].each do |request| %>
+      <li><b>Skill:</b> <%= request[:skill] %>; <b>Requested by:</b> <%= request[:requester_name] %>; <b>Request close date:</b> <%= request[:close_date] %></li>
+    <% end %>
+  </ul>
+</p>
+
+<p><a href="/my_profile">Go to my profile</a><p>

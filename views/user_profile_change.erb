@@ -1,0 +1,44 @@
+<h2>Change personal information.</h2>
+
+<form action "/user_profile_change" method="post">
+  <b><label for="first_name">First name:</label></b>
+  <div>
+    <input type="text" name="first_name" id="first_name" value=<%= params[:first_name] || @user_info[:f_name] %>>
+  </div>
+
+  <b><label for="second_name">Second name:</label></b>
+  <div>
+    <input type="text" name="second_name" id="second_name" value=<%= params[:second_name] || @user_info[:s_name] %>>
+  </div>
+
+  <div>
+   <p><b>E-mail:</b> <%= @user_info[:email] %> <em>(Can't be changed)</em></p>
+  </div>
+
+  <b><label for="phone">Phone:</label></b>
+  <div>
+    <input type="tel" name="phone" id="phone" value=<%= params[:phone] || @user_info[:phone] %>>
+  </div>
+
+  <b><label for="location">Location:</label></b>
+  <div>
+    <input type="text" name="location" id="location" value=<%= params[:location] || @user_info[:location] %>>
+  </div>
+
+  <br>
+  <input id="new_file_text" type="submit" value="Save Changes">
+</form>
+<br>
+<br>
+<form action="/edit_my_skills" method="get">
+  <b>My skills:</b> <%= @user_info[:skills] %> <button type="submit">Edit</button>
+</form>
+
+<br>
+<form action="/change_password" method="get">
+  <button type="submit">CHANGE PASSWORD</button>
+</form>
+
+
+<br>
+<p><a href="/my_profile">Go to my profile</a><p>

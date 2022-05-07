@@ -1,0 +1,15 @@
+<h1>Mahno</h1>
+<p>This is <b>Mahno App</b>. It allows network visualization and analysis of team collaboration interactions.</p>
+
+<% if logged_in? %>
+  <p><a href="/my_profile">Go to my profile</a><p>
+
+  <form method='post' action='/signout'>
+    <p>
+      <em>Signed in with email: <%= session[:email] %>.</em>
+      <button type="submit">Sign Out</button>
+    </p>
+  </form>
+<% else %>
+  <p><a href="/signin">Sign In</a> or <a href="/signup">Sign Up</a></p>
+<% end %>

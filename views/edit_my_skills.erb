@@ -1,0 +1,30 @@
+<h2>Manage my skills.</h2>
+
+<div>
+  <% @skill_list.each do |skill| %>
+    <ul>
+      <li>
+        <form action="/skills/<%= skill %>/remove" method="post">
+          <%= skill %>
+          <button type="submit">remove</button>
+        </form>
+      </li>
+    </ul>
+  <% end %>
+</div>
+
+<form action="/edit_my_skills" method="post">
+  <b><label for="new_skill">New Skill: </label></b>
+  <input type="text" list="skills" id="new_skill" name="new_skill"/>
+
+  <datalist id="skills">
+    <% @skill_selection.each do |skill| %>
+      <option value=<%= skill %>><%= skill %></option>
+    <% end %>
+  </datalist>
+  <input id="new_skill" type="submit" value="Add">
+</form>
+
+<br>
+<br>
+<p><a href="/my_profile">Go to my profile</a><p>

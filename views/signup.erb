@@ -1,0 +1,37 @@
+<form action="/signup" method="POST">
+  <div>
+    <label for='first_name'>First name:</label>
+    <input type='text' name="first_name" id="first_name" value=<%= params[:first_name] %> required>*
+  </div>
+  <div>
+    <label for='second_name'>Second name:</label>
+    <input type='text' name="second_name" id="second_name" value=<%= params[:second_name] %> required>*
+  </div>
+  <br>
+  <div>
+    <label for="user_email">User's email:</label>
+    <input type="email" name="user_email" id="user_email" value=<%= params[:user_email] %> required>*
+  </div>
+  <br>
+  <div>
+    <label for="user_phone">User's phone number:</label>
+    <input type="text" name="user_phone" id="user_phone" value=<%= params[:user_phone] %> >
+  </div>
+  <br>
+  <div>
+    <label for="user_location">User's location:</label>
+    <input type="text" name="user_location" id="user_location" value=<%= params[:user_location] %> >
+  </div>
+  <br>
+  <div>
+    <label for="password1">Password:</label>
+    <input type="password" name="password1" id="password1" required >*
+  </div>
+  <div>
+    <label for="password2">Repeat Password:</label>
+    <input type="password" name="password2" id="password2" required>*
+  </div>
+  <br>
+  <p>* - mandatory fields.</p>
+  <button type="submit">Sign up</button>
+</form>
