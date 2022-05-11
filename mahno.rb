@@ -202,8 +202,7 @@ end
 get '/edit_my_skills' do
   redirect_if_logout
 
-  @skill_list = current_user_info[:skills].split(', ')
-  @skill_list = current_user_info[:skills].split(', ')
+  @skill_list = current_user_skills
   @all_skills = @storage.all_skills
   @skill_selection = @all_skills - @skill_list
   erb :edit_my_skills, layout: :layout
@@ -225,7 +224,7 @@ post '/edit_my_skills' do
   if error
     session[:error] = error
     status 422
-    @skill_list = current_user_info[:skills].split(', ')
+    @skill_list = current_user_skills
     @all_skills = @storage.all_skills
     @skill_selection = @all_skills - @skill_list
     erb :edit_my_skills, layout: :layout
@@ -247,7 +246,9 @@ def error_new_skill(skill_name)
 end
 
 def current_user_skills
-  current_user_info[:skills].split(', ')
+  skills_arr = current_user_info[:skills]
+  skills_arr ? skills_arr.split(', '):[]
+  # current_user_info[:skills].split(', ')
 end
 
 get '/change_password' do

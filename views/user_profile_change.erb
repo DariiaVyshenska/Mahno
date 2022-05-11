@@ -31,7 +31,13 @@
 <br>
 <br>
 <form action="/edit_my_skills" method="get">
-  <b>My skills:</b> <%= @user_info[:skills] %> <button type="submit">Edit</button>
+  <b>My skills:</b>
+  <% if @user_info[:skills] %>
+    <%= @user_info[:skills] %>
+  <% else %>
+    <em>you do not have any skills specified yet</em> 
+  <% end %>
+  <button type="submit">Edit</button>
 </form>
 
 <br>

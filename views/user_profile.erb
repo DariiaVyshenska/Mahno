@@ -10,25 +10,33 @@
   <h4>My Requests <button type="submit">OPEN NEW</button></h4>
 </form>
 <p>
-  <b>Outbaund:</b>
-  <ul>
-    <% @user_requests[:outbaund].each do |request| %>
-      <li>
-        <form action="/out_requests/<%= request[:request_id] %>/close" method="post">
-          <b>Skill:</b> <%= request[:skill] %>; <b>Requested from:</b> <%= "#{request[:rec_f_name]} #{request[:rec_s_name]}" %>; <b>Request date:</b> <%= request[:open_date] %>
-          <button type="submit">Close</button>
-        </form>
-      </li>
-    <% end %>
-  </ul>
+  <b>Outbaund: </b>
+  <% if !@user_requests[:outbaund].empty? %>
+    <ul>
+      <% @user_requests[:outbaund].each do |request| %>
+        <li>
+          <form action="/out_requests/<%= request[:request_id] %>/close" method="post">
+            <b>Skill:</b> <%= request[:skill] %>; <b>Requested from:</b> <%= "#{request[:rec_f_name]} #{request[:rec_s_name]}" %>; <b>Request date:</b> <%= request[:open_date] %>
+            <button type="submit">Close</button>
+          </form>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <em>you do not have any outbaund requests yet.</em>
+  <% end %>
 </p>
 <p>
   <b>Inbaund:</b>
-  <ul>
-    <% @user_requests[:inbaund].each do |request| %>
-      <li><b>Skill:</b> <%= request[:skill] %>; <b>Requested by:</b> <%= "#{request[:req_f_name]} #{request[:req_s_name]}" %>; <b>Request date:</b> <%= request[:open_date] %></li>
-    <% end %>
-  </ul>
+  <% if !@user_requests[:inbaund].empty? %>
+    <ul>
+      <% @user_requests[:inbaund].each do |request| %>
+        <li><b>Skill:</b> <%= request[:skill] %>; <b>Requested by:</b> <%= "#{request[:req_f_name]} #{request[:req_s_name]}" %>; <b>Request date:</b> <%= request[:open_date] %></li>
+      <% end %>
+    </ul>
+  <% else %>
+    <em>you do not have any inbound requests yet.</em>
+  <% end %>
 </p>
 
 <p><a href="/closed_requests">Closed requests.</a><p>
