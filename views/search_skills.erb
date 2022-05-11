@@ -1,0 +1,30 @@
+<h2>Open new request</h2>
+
+<form action="/search_skills" method="GET">
+  <label for="query">Enter the skill of interest:</label>
+  <input name="query" id="query" value="<%= params[:query] %>">
+  <button type="submit">Search</button>
+</form>
+
+
+<% if params[:query] %>
+  <% if @results.empty? %>
+      <p>Sorry, no matches were found.</p>
+  <% else %>
+    <h3>Reslts for '<%= params[:query] %>':</h3>
+
+    <ul>
+      <% @results.each do |r| %>
+        <li>
+          <form action="/<%= r[:id] %>/request_help" method="get">
+            <%= r[:f_name] %> <%= r[:s_name] %>:  <%== highlight_pattern(r[:skills], params[:query]) %>
+            <button type="submit">Request</button>
+          </form>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+<% end %>
+
+<br>
+<p><a href="/my_profile">Go to my profile</a><p>

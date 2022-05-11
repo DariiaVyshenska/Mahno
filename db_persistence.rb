@@ -7,7 +7,7 @@ class DatabasePersistance
     @db = if Sinatra::Base.production?
             PG.connect(ENV['DATABASE_URL'])
           else
-            PG.connect(dbname: 'mahno')
+            PG.connect(dbname: 'mahno_test')
           end
     @logger = logger
   end
@@ -43,24 +43,30 @@ class DatabasePersistance
 
   def user_profile_info(id)
     sql = <<~SQL
-    SELECT users.first_name, users.second_name,
+    SELECT users.id, users.first_name, users.second_name,
             users.email, users.phone, users.location, string_agg(skills.skill_name, ', ') AS skills
     FROM users LEFT JOIN skills_users ON users.id = skills_users.user_id LEFT JOIN skills ON skills_users.skill_id = skills.id
     WHERE users.id = $1
     GROUP BY users.id;
     SQL
     result = query(sql, id)
+    convert_to_arr(result).first
+  end
 
-    result.map do |tuple|
-      {
-        f_name: tuple["first_name"],
-        s_name: tuple["second_name"],
-        email: tuple["email"],
-        phone: tuple["phone"],
-        location: tuple["location"],
-        skills: tuple["skills"]
-      }
-    end.first
+  def find_user(skill_name)
+    # skill_name = "%#{skill_name}%"
+    sql = <<~REQUEST
+    SELECT u.id, u.first_name, u.second_name, u.email, u.location,
+      string_agg(skills.skill_name, ', ') as skills
+    FROM users AS u
+      JOIN skills_users ON u.id = skills_users.user_id
+      JOIN skills ON skills_users.skill_id = skills.id
+    WHERE skill_name LIKE '%#{skill_name}%'
+    GROUP BY u.id
+    REQUEST
+
+    result = query(sql)
+    convert_to_arr(result)
   end
 
   def user_requests(id, closed = false)
@@ -157,12 +163,29 @@ class DatabasePersistance
     query(sql, user_new_pwd, user_id)
   end
 
-  ### tmp method, delete or repurpuse later!
-  def delete_user(email)
-    sql = "DELETE FROM users WHERE email = $1"
-    query(sql, email)
+  def open_request(from_user_id, to_user_id, skill_name, comment)
+    sql = <<~REQUEST
+    INSERT INTO requests (sender_id, receiver_id, skill_id, request_info)
+    VALUES ($1,
+            $2,
+            (SELECT id FROM skills WHERE skill_name = $3),
+            $4)
+    REQUEST
+    query(sql, from_user_id, to_user_id, skill_name, comment)
   end
-  ###
+
+  def user_exists?(user_id)
+    sql = "SELECT 1 FROM users WHERE id = $1"
+    result = query(sql, user_id)
+    result.values.size.zero? ? false:true
+  end
+
+  # ### method for future 'admin' implementation
+  # def delete_user(email)
+  #   sql = "DELETE FROM users WHERE email = $1"
+  #   query(sql, email)
+  # end
+  # ###
 
   private
 
@@ -203,7 +226,7 @@ class DatabasePersistance
       requests.close_date,
       skills.skill_name
     FROM requests
-    JOIN users ON requests.receiver_id = users.id
+    JOIN users ON requests.sender_id = users.id
     JOIN skills ON requests.skill_id = skills.id
     WHERE receiver_id = $1 AND completed IS #{status}
     REQUEST
@@ -218,6 +241,20 @@ class DatabasePersistance
         req_s_name: tuple["second_name"],
         open_date: tuple["open_date"],
         close_date: tuple["close_date"]
+      }
+    end
+  end
+
+  def convert_to_arr(result)
+    result.map do |tuple|
+      {
+        id: tuple["id"],
+        f_name: tuple["first_name"],
+        s_name: tuple["second_name"],
+        email: tuple["email"],
+        phone: tuple["phone"],
+        location: tuple["location"],
+        skills: tuple["skills"]
       }
     end
   end

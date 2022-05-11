@@ -26,9 +26,18 @@ after do
   @storage.disconnect
 end
 
+not_found do
+  status 404
+  "Error 404. This page does not exist!"
+end
+
 helpers do
   def logged_in?
     session.key?(:login)
+  end
+
+  def highlight_pattern(str, pattern)
+    str.gsub(pattern, %(<strong>#{pattern}</strong>))
   end
 end
 
@@ -270,12 +279,47 @@ post '/change_password' do
   end
 end
 
-get '/open_new_request' do
+get '/search_skills' do
+  redirect_if_logout
 
+  if params[:query]
+    @results = @storage.find_user(params[:query])
+    @results.reject! { |u| u[:id] == session[:login]} unless @results.empty?
+  end
+  erb :search_skills, layout: :layout
 end
 
-# only for testing, this path must be only for authorized users (admins)
-post '/delete_user/:email' do
-  email = "#{params[:email]}@gmail.com"
-  @storage.delete_user(email)
+get '/:other_id/request_help' do
+  redirect_if_logout
+  redirect_if_nonexist_user(params[:other_id])
+
+  # check if user id exists. if not - same page as non existing page
+
+  @user_info = @storage.user_profile_info(params[:other_id])
+  @user_info[:skills] = @user_info[:skills].split(', ')
+  erb :new_request, layout: :layout
 end
+
+post '/:other_id/create_new_request' do
+  redirect_if_logout
+  redirect_if_nonexist_user(params[:other_id])
+
+  @storage.open_request(session[:login], params[:other_id], params[:skill], params[:comment])
+  session[:success] = "Your request was successfully opened."
+
+  redirect '/my_profile'
+end
+
+def redirect_if_nonexist_user(user_id)
+  return if (user_id !~ /\D/) && @storage.user_exists?(user_id)
+
+  session[:error] = 'This page does not exist.'
+  redirect '/'
+end
+
+# this path must be only for authorized users (admins) - reformat is as secret option
+# later this will be part of admin capabilities
+# post '/delete_user/:email' do
+#   email = "#{params[:email]}@gmail.com"
+#   @storage.delete_user(email) if params[:admin]
+# end

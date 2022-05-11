@@ -21,6 +21,15 @@ class MahnoTest < Minitest::Test
     { "rack.session" => { login: "1", email: 'vysh@gmail.com'} }
   end
 
+  def setup
+    system('createdb mahno_test')
+    system('psql -d mahno_test < schema.sql')
+  end
+
+  def teardown
+    system('dropdb mahno_test')
+  end
+
   def test_index
     get "/"
     assert_equal 200, last_response.status
@@ -145,8 +154,6 @@ class MahnoTest < Minitest::Test
     get last_response["Location"]
     assert_includes last_response.body, %q(Signed in with email: test@gmail.com.)
     assert_includes last_response.body, %q(<button type="submit">Sign Out)
-    #deleting test user
-    post '/delete_user/test'
   end
 
   def test_signup_with_wrong_credentials
@@ -300,11 +307,95 @@ class MahnoTest < Minitest::Test
     post '/change_password', password: '12345', password1: '1234', password2: '1234'
   end
 
-  # def test_open_new_request
-  #
-  # end
-  #
-  # def test_close_request
-  #   # closing of the request is implemented, but I want to couple it with opening a new request
-  # end
+  def test_search_request_skill_page
+    # redir when logged out
+    get '/search_skills'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+
+    # access the page when logged in
+    get '/search_skills', {}, user_session
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, %q(<h2>Open new request</h2>)
+    assert_includes last_response.body, %q(<label for="query">Enter the skill of interest:</label>)
+
+    # search unexisting skill
+    get '/search_skills', {query: 'timothy'}, user_session
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, %q(Sorry, no matches were found.)
+
+    # search exisiting skill
+    get '/search_skills', {query: 's'}, user_session
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, %q(Oleksii Motorykin:  l<strong>s</strong>m<strong>s</strong>, <strong>s</strong>cience)
+    assert_includes last_response.body, %q(form action="/2/request_help)
+  end
+
+  def test_open_and_close_new_request_page
+    # access both pages when logged out
+    get '/2/request_help'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+
+    post '/2/create_new_request'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+
+    # assecss
+    get '/2/request_help', {}, user_session
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, %q(Oleksii Motorykin)
+    assert_includes last_response.body, %q(<form action="/2/create_new_request" method="POST">)
+
+    # # assess
+    post '/2/create_new_request', {skill: 'science', comment: 'test'}, user_session
+    assert_equal 302, last_response.status
+    assert_equal 'Your request was successfully opened.', session[:success]
+
+    get last_response["Location"]
+    assert_includes last_response.body, %q(<b>Skill:</b> science; <b>Requested from:</b> Oleksii Motorykin)
+    assert_includes last_response.body, %q(<form action="/out_requests/6/close" method="post")
+
+    # now close this request
+    post '/out_requests/6/close', {}, user_session
+    assert_equal 302, last_response.status
+    assert_equal 'Your request was successfully closed.', session[:success]
+
+    get last_response["Location"]
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, %q(Signed in with email: vysh@gmail.com)
+    assert_includes last_response.body, %q(<p><b>Name:</b> Dariia Vyshenska</p>)
+    refute_includes last_response.body, %q(<b>Skill:</b> science; <b>Requested from:</b> Oleksii Motorykin)
+    refute_includes last_response.body, %q(<form action="/out_requests/6/close" method="post")
+  end
+
+  def test_page_not_found
+    get '/i_do_not_exist'
+    assert_equal 404, last_response.status
+    assert_includes last_response.body, %q(Error 404. This page does not exist!)
+  end
+
+  def test_access_non_existant_user_page
+    # not logged in
+    post '/102/create_new_request'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+    get '/102/request_help'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+
+    #logged in
+    post '/102/create_new_request', {}, user_session
+    assert_equal 302, last_response.status
+    assert_equal 'This page does not exist.', session[:error]
+
+    get '/102/request_help' , {}, user_session
+    assert_equal 302, last_response.status
+    assert_equal 'This page does not exist.', session[:error]
+  end
 end

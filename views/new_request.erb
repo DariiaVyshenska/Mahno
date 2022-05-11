@@ -1,0 +1,30 @@
+<h2>User's profile.</h2>
+<p><b>Name:</b> <%= "#{@user_info[:f_name]} #{@user_info[:s_name]}" %></p>
+<p><b>E-mail:</b> <%= @user_info[:email] %></p>
+<p><b>Phone:</b> <%= @user_info[:phone] %></p>
+<p><b>Location:</b> <%= @user_info[:location] %></p>
+
+<form action="/<%= @user_info[:id] %>/create_new_request" method="POST">
+  <label for="skill"><b>Choose a skill:</b></label>
+  <select id="skill" name="skill">
+    <% @user_info[:skills].each do |skill| %>
+
+    <option value="<%= skill %>"><%= skill %></option>
+
+    <% end %>
+  </select>
+
+  <br>
+  <br>
+  <label for="comment"><b>Comments:</b></label>
+  <br>
+  <textarea id="comment" name="comment" rows="5" cols="30">
+  </textarea>
+
+  <br>
+  <button type="submit">Submit</button>
+</form>
+
+
+<br>
+<p><a href="/my_profile">Go to my profile</a><p>
