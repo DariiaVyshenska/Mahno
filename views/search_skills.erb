@@ -9,15 +9,14 @@
 
 <% if params[:query] %>
   <% if @results.empty? %>
-      <p>Sorry, no matches were found.</p>
+    <p>Sorry, no matches were found.</p>
   <% else %>
     <h3>Reslts for '<%= params[:query] %>':</h3>
-
     <ul>
       <% @results.each do |r| %>
         <li>
           <form action="/<%= r[:id] %>/request_help" method="get">
-            <%= r[:f_name] %> <%= r[:s_name] %>:  <%== highlight_pattern(r[:skills], params[:query]) %>
+            <%= r[:f_name] %> <%= r[:s_name] %>:  <%== highlight_pattern(r[:skills].join(', '), params[:query]) %>
             <button type="submit">Request</button>
           </form>
         </li>

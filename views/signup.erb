@@ -1,11 +1,11 @@
 <form action="/signup" method="POST">
   <div>
     <label for='first_name'>First name:</label>
-    <input type='text' name="first_name" id="first_name" required value=<%= params[:first_name] %> >*
+    <input type='text' name="first_name" id="first_name" maxlength=25 required value=<%= params[:first_name] %> >*
   </div>
   <div>
     <label for='second_name'>Second name:</label>
-    <input type='text' name="second_name" id="second_name" required value=<%= params[:second_name] %> >*
+    <input type='text' name="second_name" id="second_name" maxlength=50 required value=<%= params[:second_name] %> >*
   </div>
   <br>
   <div>
@@ -14,8 +14,8 @@
   </div>
   <br>
   <div>
-    <label for="user_phone">User's phone number:</label>
-    <input type="text" name="user_phone" id="user_phone" value=<%= params[:user_phone] %> >
+    <label for="user_phone">User's phone number <em>(10 digit format)</em>:</label>
+    <input type="tel" name="user_phone" id="user_phone" pattern="[0-9]{10}" value=<%= params[:user_phone] %> >
   </div>
   <br>
   <div>

@@ -4,9 +4,10 @@
 <p><b>Phone:</b> <%= @user_info[:phone] %></p>
 <p><b>Location:</b> <%= @user_info[:location] %></p>
 
-<form action="/<%= @user_info[:id] %>/create_new_request" method="POST">
+<form action="/<%= @user_info[:id] %>/request_help" method="POST">
   <label for="skill"><b>Choose a skill:</b></label>
   <select id="skill" name="skill">
+    <option value="">--</option>
     <% @user_info[:skills].each do |skill| %>
 
     <option value="<%= skill %>"><%= skill %></option>
@@ -18,8 +19,7 @@
   <br>
   <label for="comment"><b>Comments:</b></label>
   <br>
-  <textarea id="comment" name="comment" rows="5" cols="30">
-  </textarea>
+  <textarea id="comment" name="comment" rows="5" cols="30" maxlength="300" value=><%= params[:comment] %></textarea>
 
   <br>
   <button type="submit">Submit</button>

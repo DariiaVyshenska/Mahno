@@ -3,7 +3,14 @@
 <p><b>E-mail:</b> <%= @user_info[:email] %></p>
 <p><b>Phone:</b> <%= @user_info[:phone] %></p>
 <p><b>Location:</b> <%= @user_info[:location] %></p>
-<p><b>My skills:</b> <%= @user_info[:skills] %></p>
+<p>
+  <b>My skills:</b>
+  <% if @user_info[:skills].empty? %>
+    <em>you do not have any skills specified yet</em>
+  <% else %>
+    <%= @user_info[:skills].join(', ') %>
+  <% end %>
+</p>
 <p><a href="/change_profile">Manage my profile.</a><p>
 <br>
 <form action="/search_skills" method="get">
@@ -16,7 +23,7 @@
       <% @user_requests[:outbaund].each do |request| %>
         <li>
           <form action="/out_requests/<%= request[:request_id] %>/close" method="post">
-            <b>Skill:</b> <%= request[:skill] %>; <b>Requested from:</b> <%= "#{request[:rec_f_name]} #{request[:rec_s_name]}" %>; <b>Request date:</b> <%= request[:open_date] %>
+            <b>Skill:</b> <%= request[:skill] %>; <b>Requested from:</b> <%= "#{request[:req_f_name]} #{request[:req_s_name]}" %>; <b>Request date:</b> <%= request[:open_date] %>
             <button type="submit">Close</button>
           </form>
         </li>

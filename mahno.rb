@@ -28,7 +28,7 @@ end
 
 not_found do
   status 404
-  "Error 404. This page does not exist!"
+  'Error 404. This page does not exist!'
 end
 
 helpers do
@@ -48,64 +48,120 @@ def redirect_if_logout
   redirect '/'
 end
 
-def valid_credentials?(email, pwd)
-  user_pw = @storage.get_user_password(email)
-  user_pw && (BCrypt::Password.new(user_pw) == pwd)
+def redirect_if_loggedin
+  redirect '/' if logged_in?
 end
 
-def error_new_credentials(first_name, second_name, user_email, pass1, pass2) # may introduce other restrictions for new user's info!
-  if first_name.empty?                              # check for valid name
-    'You must enter a valid first name of the user.'
-  elsif second_name.empty?                              # check for valid surname
-    'You must enter a valid second name of the user.'
-  elsif user_email.empty?
-    'You must enter a user email.'
-  elsif @storage.user_id(user_email)    # check of phone (correct length) and location (max 25 letters) must be implemented too
-    'This email already exists. Use another one!'
-  elsif error_new_pwd(pass1, pass2)
+def error_valid_credentials(email, pwd)
+  user_pw = @storage.get_user_password(email)
+  msg = 'Please, enter valid current credentials.'
+  msg unless user_pw && (BCrypt::Password.new(user_pw) == pwd)
+end
+
+def error_new_info(full_name, user_email, phone, pass1, pass2)
+  error_first_last_names(full_name) ||
+    error_new_email(user_email) ||
+    error_phone(phone) ||
     error_new_pwd(pass1, pass2)
+end
+
+def error_new_email(user_email)
+  if user_email.empty?
+    'You must enter a user email.'
+  elsif @storage.find_user_id(user_email)
+    'This email already exists. Use another one!'
+  end
+end
+
+def error_phone(phone)
+  msg = 'Error! The phone number must contain only 10 digits.'
+  msg if !phone.empty? && (phone.size != 10)
+end
+
+def error_first_last_names(full_name)
+  if full_name[0].empty?
+    'You must enter a valid first name of the user.'
+  elsif full_name[0].size > 25
+    'Error. Maximum allowed length of the first name is 25 characters.'
+  elsif full_name[1].empty?
+    'You must enter a valid second name of the user.'
+  elsif full_name[1].size > 50
+    'Error. Maximum allowed length of the second name is 50 characters.'
   end
 end
 
 def error_new_pwd(pwd1, pwd2)
   if pwd1 != pwd2
     'Entered passwords do not match.'
+  elsif pwd1.include?(' ')
+    'Use of spaces in passwords is not allowed!'
   elsif pwd1.size < 4
     'The password must be 4 or more characters.'
   end
 end
 
+def error_new_skill(skill_name)
+  if skill_name.empty?
+    'You must enter a valid skill name.'
+  elsif current_user_info[:skills].include?(skill_name)
+    'This skill is already on your list.'
+  elsif skill_name.size > 25
+    'The skill name must be less than 25 characters.'
+  elsif skill_name.count('[A-Za-z0-9-\'\/]') != skill_name.size
+    'Error! Allowed characters for skill name are: ' \
+     'letters, digits, dash, slash, and apostrophe only.'
+  end
+end
+
 def login
   u_email = params[:user_email].strip
-  session[:login] = @storage.user_id(u_email)
+  session[:login] = @storage.find_user_id(u_email)
   session[:email] = u_email
 end
 
-# ++++
+def current_user_info
+  @storage.user_profile_info(session[:login])
+end
+
+def encrypt_password(pwd_str)
+  BCrypt::Password.create(pwd_str).to_s
+end
+
+def redirect_if_nonexist_user(user_id)
+  return if (user_id !~ /\D/) && @storage.user_exists?(user_id)
+
+  session[:error] = 'This page does not exist.'
+  redirect '/'
+end
+
+def clean_name(name)
+  name.to_s.strip.capitalize
+end
+
+############################### MAIN ###########################################
+
 get '/' do
   erb :index, layout: :layout
 end
 
 get '/signin' do
-  redirect '/' if logged_in?
+  redirect_if_loggedin
+
   erb :signin, layout: :layout
 end
 
 post '/signin' do
-  if valid_credentials?(params[:user_email], params[:password])
-    login
-    session[:success] = "Welcome!"
-    redirect '/'
-  else
-    session[:error] = 'Invalid Credentials'
+  redirect_if_loggedin
+
+  if (error = error_valid_credentials(params[:user_email], params[:password]))
+    session[:error] = error
     status 422
     erb :signin, layout: :layout
+  else
+    login
+    session[:success] = 'Welcome!'
+    redirect '/'
   end
-end
-
-
-def current_user_info
-  @storage.user_profile_info(session[:login])
 end
 
 get '/my_profile' do
@@ -116,8 +172,9 @@ get '/my_profile' do
   erb :user_profile, layout: :layout
 end
 
-
 post '/signout' do
+  redirect_if_logout
+
   session.delete(:login)
   session.delete(:email)
   session[:success] = 'You have been signed out.'
@@ -125,55 +182,50 @@ post '/signout' do
 end
 
 get '/signup' do
-  redirect '/' if logged_in?
+  redirect_if_loggedin
+
   erb :signup
 end
 
-def create_new_user(first_name, second_name, user_email, pass, phone, location)
-  psswd = encrypt_password(pass)
-  @storage.create_user(first_name, second_name, user_email, psswd, phone, location)
-end
-
-def encrypt_password(pwd_str)
-  BCrypt::Password.create(pwd_str).to_s
-end
-
 post '/signup' do
-  redirect '/' if logged_in?
-  f_name = params[:first_name].strip.capitalize
-  s_name = params[:second_name].strip.capitalize
+  redirect_if_loggedin
+  f_name = clean_name(params[:first_name])
+  s_name = clean_name(params[:second_name])
   user_email = params[:user_email].strip.downcase
   phone = params[:user_phone].strip
-  location =  params[:user_location].strip
+  location = params[:user_location].strip
   pass1 = params[:password1]
   pass2 = params[:password2]
 
-  error = error_new_credentials(f_name, s_name, user_email, pass1, pass2)
+  error = error_new_info([f_name, s_name], user_email, phone, pass1, pass2)
   if error
     session[:error] = error
     status 422
     erb :signup
   else
     pwd = encrypt_password(pass1)
-    @storage.new_user(f_name, s_name, user_email, phone, location, pwd)
+    @storage.new_user([f_name, s_name], user_email, phone, location, pwd)
     login
     session[:success] = 'Your accout has been successfully created.'
     redirect '/'
   end
 end
 
-post "/out_requests/:request_id/close" do
+post '/out_requests/:request_id/close' do
   redirect_if_logout
 
-  @storage.close_request(params[:request_id])
-  session[:success] = "Your request was successfully closed."
+  request_id = params[:request_id]
+  redirect '/' unless @storage.users_request?(session[:login], request_id)
+
+  @storage.close_request(request_id)
+  session[:success] = 'Your request was successfully closed.'
   redirect '/my_profile'
 end
 
 get '/closed_requests' do
   redirect_if_logout
 
-  @user_requests = @storage.user_requests(session[:login], closed = true)
+  @user_requests = @storage.user_requests(session[:login], closed: true)
   erb :closed_requests, layout: :layout
 end
 
@@ -186,23 +238,32 @@ end
 
 post '/change_profile' do
   redirect_if_logout
-
   @user_info = current_user_info
-  new_f_name = params[:first_name].to_s.downcase.capitalize
-  @storage.change_first_name(session[:login], new_f_name) if (!new_f_name.empty? && new_f_name != @user_info[:f_name])
-  new_s_name = params[:second_name].to_s.downcase.capitalize
-  @storage.change_second_name(session[:login], new_s_name) if (!new_s_name.empty? && new_s_name != @user_info[:s_name])
-  new_phone = params[:phone].to_s.gsub(/\D/, '')
-  @storage.change_phone(session[:login], new_phone) if new_phone != @user_info[:phone]
-  @storage.change_location(session[:login], params[:location]) if params[:location] != @user_info[:location]
-  session[:success] = 'Your personal information was successfully changed!'
-  redirect '/my_profile'
+
+  new_f_name = clean_name(params[:first_name])
+  new_s_name = clean_name(params[:second_name])
+  new_phone = params[:phone].to_s
+
+  error = (error_first_last_names([new_f_name, new_s_name]) ||
+           error_phone(new_phone))
+  if error
+    status 422
+    session[:error] = error
+    erb :user_profile_change, layout: :layout
+  else
+    @storage.change_first_name(session[:login], new_f_name) if new_f_name != @user_info[:f_name]
+    @storage.change_second_name(session[:login], new_s_name) if new_s_name != @user_info[:s_name]
+    @storage.change_phone(session[:login], new_phone) if new_phone != @user_info[:phone]
+    @storage.change_location(session[:login], params[:location]) if params[:location] != @user_info[:location]
+    session[:success] = 'Your personal information was successfully changed!'
+    redirect '/my_profile'
+  end
 end
 
 get '/edit_my_skills' do
   redirect_if_logout
 
-  @skill_list = current_user_skills
+  @skill_list = current_user_info[:skills]
   @all_skills = @storage.all_skills
   @skill_selection = @all_skills - @skill_list
   erb :edit_my_skills, layout: :layout
@@ -210,6 +271,7 @@ end
 
 post '/skills/:skill/remove' do
   redirect_if_logout
+  redirect '/' unless @storage.users_skill?(session[:login], params[:skill])
 
   @storage.remove_skill(params[:skill], session[:login])
   session[:success] = 'The skill was successfully removed!'
@@ -224,7 +286,7 @@ post '/edit_my_skills' do
   if error
     session[:error] = error
     status 422
-    @skill_list = current_user_skills
+    @skill_list = current_user_info[:skills]
     @all_skills = @storage.all_skills
     @skill_selection = @all_skills - @skill_list
     erb :edit_my_skills, layout: :layout
@@ -234,21 +296,6 @@ post '/edit_my_skills' do
     session[:success] = 'New skill was successfullly added!'
     redirect '/edit_my_skills'
   end
-
-end
-
-def error_new_skill(skill_name)
-  if skill_name.empty?
-    'You must enter a valid skill name.'
-  elsif current_user_skills.include?(skill_name)
-    'This skill is already on your list.'
-  end
-end
-
-def current_user_skills
-  skills_arr = current_user_info[:skills]
-  skills_arr ? skills_arr.split(', '):[]
-  # current_user_info[:skills].split(', ')
 end
 
 get '/change_password' do
@@ -262,21 +309,16 @@ post '/change_password' do
   new_pw1 = params[:password1]
   new_pw2 = params[:password2]
 
-  if valid_credentials?(session[:email], params[:password])
-    error = error_new_pwd(new_pw1, new_pw2)
-    if error
-      status 422
-      session[:error] = error
-      erb :user_password_change, layout: :layout
-    else
-      session[:success] = "You've successfully changed your password!"
-      @storage.change_user_password(session[:login], encrypt_password(new_pw1))
-      redirect '/change_profile'
-    end
-  else
+  error = (error_valid_credentials(session[:email], params[:password]) ||
+           error_new_pwd(new_pw1, new_pw2))
+  if error
     status 422
-    session[:error] = 'Please, enter valid current password.'
+    session[:error] = error
     erb :user_password_change, layout: :layout
+  else
+    session[:success] = "You've successfully changed your password!"
+    @storage.change_user_password(session[:login], encrypt_password(new_pw1))
+    redirect '/change_profile'
   end
 end
 
@@ -284,8 +326,8 @@ get '/search_skills' do
   redirect_if_logout
 
   if params[:query]
-    @results = @storage.find_user(params[:query])
-    @results.reject! { |u| u[:id] == session[:login]} unless @results.empty?
+    @results = @storage.find_user(params[:query].downcase)
+    @results.reject! { |u| u[:id] == session[:login] }
   end
   erb :search_skills, layout: :layout
 end
@@ -294,28 +336,27 @@ get '/:other_id/request_help' do
   redirect_if_logout
   redirect_if_nonexist_user(params[:other_id])
 
-  # check if user id exists. if not - same page as non existing page
-
   @user_info = @storage.user_profile_info(params[:other_id])
-  @user_info[:skills] = @user_info[:skills].split(', ')
   erb :new_request, layout: :layout
 end
 
-post '/:other_id/create_new_request' do
+post '/:other_id/request_help' do
   redirect_if_logout
   redirect_if_nonexist_user(params[:other_id])
 
-  @storage.open_request(session[:login], params[:other_id], params[:skill], params[:comment])
-  session[:success] = "Your request was successfully opened."
+  skill = params[:skill].strip
+  if skill.empty?
+    session[:error] = 'Please, select the skill.'
+    status 422
 
-  redirect '/my_profile'
-end
-
-def redirect_if_nonexist_user(user_id)
-  return if (user_id !~ /\D/) && @storage.user_exists?(user_id)
-
-  session[:error] = 'This page does not exist.'
-  redirect '/'
+    @user_info = @storage.user_profile_info(params[:other_id])
+    erb :new_request, layout: :layout
+  else
+    @storage.open_request(session[:login], params[:other_id],
+                          params[:skill], params[:comment].strip)
+    session[:success] = 'Your request was successfully opened.'
+    redirect '/my_profile'
+  end
 end
 
 # this path must be only for authorized users (admins) - reformat is as secret option

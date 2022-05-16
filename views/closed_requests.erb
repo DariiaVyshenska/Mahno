@@ -6,7 +6,7 @@
       <ul>
         <% @user_requests[:outbaund].each do |request| %>
           <li>
-            <b>Skill:</b> <%= request[:skill] %>; <b>Requested from:</b> <%= "#{request[:rec_f_name]} #{request[:rec_s_name]}" %>; <b>Request close date:</b> <%= request[:close_date] %>
+            <b>Skill:</b> <%= request[:skill] %>; <b>Requested from:</b> <%= "#{request[:req_f_name]} #{request[:req_s_name]}" %>; <b>Request close date:</b> <%= request[:close_date] %>
           </li>
         <% end %>
       </ul>

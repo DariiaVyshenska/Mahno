@@ -15,7 +15,7 @@
 
 <form action="/edit_my_skills" method="post">
   <b><label for="new_skill">New Skill: </label></b>
-  <input type="text" list="skills" id="new_skill" name="new_skill"/>
+  <input type="text" list="skills" id="new_skill" maxlength="25" name="new_skill"/>
 
   <datalist id="skills">
     <% @skill_selection.each do |skill| %>

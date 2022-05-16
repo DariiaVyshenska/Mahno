@@ -85,22 +85,22 @@ class MahnoTest < Minitest::Test
   def test_invalid_signin
     post '/signin', user_email: '  ', password: '1234'
     assert_equal 422, last_response.status
-    assert_includes last_response.body, 'Invalid Credentials'
+    assert_includes last_response.body, 'Please, enter valid current credentials.'
     assert_nil session[:login]
 
     post '/signin', user_email: 'vysh@gmail.com', password: 'mmm'
     assert_equal 422, last_response.status
-    assert_includes last_response.body, 'Invalid Credentials'
+    assert_includes last_response.body, 'Please, enter valid current credentials.'
     assert_nil session[:login]
 
     post '/signin', user_email: 'wrong@gmail.com', password: '1234'
     assert_equal 422, last_response.status
-    assert_includes last_response.body, 'Invalid Credentials'
+    assert_includes last_response.body, 'Please, enter valid current credentials.'
     assert_nil session[:login]
 
     post '/signin', user_email: 'wrong@gmail.com', password: 'wrong_pass'
     assert_equal 422, last_response.status
-    assert_includes last_response.body, 'Invalid Credentials'
+    assert_includes last_response.body, 'Please, enter valid current credentials.'
     assert_nil session[:login]
   end
 
@@ -197,7 +197,7 @@ class MahnoTest < Minitest::Test
   def test_change_profile_name
     post '/signin', user_email: 'vysh@gmail.com', password: '1234'
 
-    post '/change_profile', first_name: 'Odarka'
+    post '/change_profile', first_name: 'Odarka', second_name: 'Vyshenska'
     assert_equal 302, last_response.status
     assert_equal 'Your personal information was successfully changed!', session[:success]
 
@@ -226,17 +226,21 @@ class MahnoTest < Minitest::Test
     assert_equal 422, last_response.status
     assert_includes last_response.body, 'You must enter a valid skill name.'
 
+    post '/edit_my_skills', new_skill: 'one, second'
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, 'Error! Allowed characters for skill name are: letters, digits, dash, slash, and apostrophe only.'
+
     post '/edit_my_skills', new_skill: 'sql'
     assert_equal 422, last_response.status
     assert_includes last_response.body, 'This skill is already on your list.'
 
-    post '/edit_my_skills', new_skill: 'test_skill'
+    post '/edit_my_skills', new_skill: 'test-skill'
     assert_equal 302, last_response.status
     get last_response["Location"]
     assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
-    assert_includes last_response.body, '<form action="/skills/test_skill/remove" method="post">'
+    assert_includes last_response.body, '<form action="/skills/test-skill/remove" method="post">'
 
-    post '/skills/test_skill/remove'
+    post '/skills/test-skill/remove'
     assert_equal 302, last_response.status
     assert_equal 'The skill was successfully removed!', session[:success]
 
@@ -244,6 +248,12 @@ class MahnoTest < Minitest::Test
     assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
     assert_includes last_response.body, %q(Manage my skills.)
     refute_includes last_response.body, %q(<form action="/skills/test_skill/remove" method="post">)
+
+    # try removing not my skill
+    post '/skills/lsms/remove'
+    assert_equal 302, last_response.status
+    get last_response["Location"]
+    assert_includes last_response.body, %q(<p>This is <b>Mahno App</b>.)
   end
 
   def test_change_pass_page
@@ -269,7 +279,7 @@ class MahnoTest < Minitest::Test
     # change password - wrong current password
     post '/change_password', password: '1234abcd', password1: '123456', password2: '123456'
     assert_equal 422, last_response.status
-    assert_includes last_response.body, 'Please, enter valid current password.'
+    assert_includes last_response.body, 'Please, enter valid current credentials.'
     # change pwd - not equal pswds
     post '/change_password', password: '1234', password1: '123456', password2: '1234567'
     assert_equal 422, last_response.status
@@ -340,7 +350,7 @@ class MahnoTest < Minitest::Test
     assert_equal 302, last_response.status
     assert_equal 'You must be signed in to do that.', session[:error]
 
-    post '/2/create_new_request'
+    post '/2/request_help'
     assert_equal 302, last_response.status
     assert_equal 'You must be signed in to do that.', session[:error]
 
@@ -349,10 +359,10 @@ class MahnoTest < Minitest::Test
     assert_equal 200, last_response.status
     assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
     assert_includes last_response.body, %q(Oleksii Motorykin)
-    assert_includes last_response.body, %q(<form action="/2/create_new_request" method="POST">)
+    assert_includes last_response.body, %q(<form action="/2/request_help" method="POST">)
 
     # # assess
-    post '/2/create_new_request', {skill: 'science', comment: 'test'}, user_session
+    post '/2/request_help', {skill: 'science', comment: 'test'}, user_session
     assert_equal 302, last_response.status
     assert_equal 'Your request was successfully opened.', session[:success]
 
@@ -372,6 +382,19 @@ class MahnoTest < Minitest::Test
     assert_includes last_response.body, %q(<p><b>Name:</b> Dariia Vyshenska</p>)
     refute_includes last_response.body, %q(<b>Skill:</b> science; <b>Requested from:</b> Oleksii Motorykin)
     refute_includes last_response.body, %q(<form action="/out_requests/6/close" method="post")
+
+
+    # close incorrect request
+    post '/out_requests/2/close', {}, user_session
+    assert_equal 302, last_response.status
+    get last_response["Location"]
+    assert_includes last_response.body, %q(<p>This is <b>Mahno App</b>.)
+  end
+
+  def test_open_request_without_skill
+    post '/2/request_help', {skill: ' ', comment: 'test'}, user_session
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, %q(Please, select the skill.)
   end
 
   def test_page_not_found
@@ -382,7 +405,7 @@ class MahnoTest < Minitest::Test
 
   def test_access_non_existant_user_page
     # not logged in
-    post '/102/create_new_request'
+    post '/102/request_help'
     assert_equal 302, last_response.status
     assert_equal 'You must be signed in to do that.', session[:error]
     get '/102/request_help'
@@ -390,7 +413,7 @@ class MahnoTest < Minitest::Test
     assert_equal 'You must be signed in to do that.', session[:error]
 
     #logged in
-    post '/102/create_new_request', {}, user_session
+    post '/102/request_help', {}, user_session
     assert_equal 302, last_response.status
     assert_equal 'This page does not exist.', session[:error]
 
