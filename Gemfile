@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-ruby "3.0.2"
+ruby "3.1.2"
 gem "sinatra", "~>2.1.0"
 gem "sinatra-contrib"
 gem "erubis"
@@ -14,3 +14,4 @@ gem "bcrypt"
 group :production do
    gem "puma"
  end
+gem 'securerandom'

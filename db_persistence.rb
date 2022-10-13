@@ -4,11 +4,20 @@ require 'pg'
 
 # this class is an interface for interacting with PSQL database for the App
 class DatabasePersistance
+  # def initialize(logger)
+  #   @db = if Sinatra::Base.production?
+  #           PG.connect(ENV['DATABASE_URL'])
+  #         else
+  #           PG.connect(dbname: 'mahno_test')
+  #         end
+  #   @logger = logger
+  # end
+
   def initialize(logger)
     @db = if Sinatra::Base.production?
             PG.connect(ENV['DATABASE_URL'])
           else
-            PG.connect(dbname: 'mahno_test')
+            @db = connect_db('mahno_test')
           end
     @logger = logger
   end
@@ -57,7 +66,7 @@ class DatabasePersistance
       FROM users AS u
         JOIN skills_users ON u.id = skills_users.user_id
         JOIN skills ON skills_users.skill_id = skills.id
-      WHERE skill_name LIKE '%#{skill_name}%' GROUP BY u.id
+      WHERE skill_name LIKE '%#{@db.escape_string(skill_name)}%' GROUP BY u.id
     REQUEST
     result = query(sql)
     userinfo_to_arr(result)
@@ -199,13 +208,25 @@ class DatabasePersistance
 
   private
 
+  def connect_db(name)
+    PG.connect(dbname: name)
+  rescue PG::ConnectionBad
+    import_db(name)
+    PG.connect(dbname: name)
+  end
+
+  def import_db(name)
+    system("createdb #{name}")
+    system("psql -d #{name} < schema.sql")
+  end
+
   def query(statement, *params)
     @logger.info "#{statement}: #{params}"
     @db.exec_params(statement, params)
   end
 
   def singltone_val(result)
-    result.values.first&.first
+    result.values.first && result.values.first.first
   end
 
   def exists?(result)

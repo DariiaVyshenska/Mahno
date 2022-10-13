@@ -4,13 +4,14 @@ require 'sinatra'
 require 'tilt/erubis'
 require 'sinatra/content_for'
 require 'bcrypt'
+require 'securerandom'
 
 require_relative 'db_persistence'
 
 configure do
   enable :sessions
-  set :session_secret, 'my_$ecre1'
-  set :erb, escape_html: true
+  set :session_secret, ENV.fetch('SESSION_SECRET') { SecureRandom.hex(64) }    # ENV is a Ruby class. Fetch returns env variable with the name provided in (). if
+  set :erb, escape_html: true                                                  # no such var then the name is yelded to the block, block executed and the result of block is returned
 end
 
 configure(:development) do
@@ -358,10 +359,3 @@ post '/:other_id/request_help' do
     redirect '/my_profile'
   end
 end
-
-# this path must be only for authorized users (admins) - reformat is as secret option
-# later this will be part of admin capabilities
-# post '/delete_user/:email' do
-#   email = "#{params[:email]}@gmail.com"
-#   @storage.delete_user(email) if params[:admin]
-# end
