@@ -3,16 +3,8 @@
 require 'pg'
 
 # this class is an interface for interacting with PSQL database for the App
+# rubocop:disable Metrics/ClassLength
 class DatabasePersistance
-  # def initialize(logger)
-  #   @db = if Sinatra::Base.production?
-  #           PG.connect(ENV['DATABASE_URL'])
-  #         else
-  #           PG.connect(dbname: 'mahno_test')
-  #         end
-  #   @logger = logger
-  # end
-
   def initialize(logger)
     @db = if Sinatra::Base.production?
             PG.connect(ENV['DATABASE_URL'])
@@ -199,13 +191,6 @@ class DatabasePersistance
     exists?(result)
   end
 
-  # ### method for future 'admin' implementation
-  # def delete_user(email)
-  #   sql = "DELETE FROM users WHERE email = $1"
-  #   query(sql, email)
-  # end
-  # ###
-
   private
 
   def connect_db(name)
@@ -226,7 +211,7 @@ class DatabasePersistance
   end
 
   def singltone_val(result)
-    result.values.first && result.values.first.first
+    result.values.first&.first
   end
 
   def exists?(result)
@@ -290,3 +275,4 @@ class DatabasePersistance
     skills_val ? skills_val.split(';') : []
   end
 end
+# rubocop: enable Metrics/ClassLength

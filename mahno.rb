@@ -10,8 +10,10 @@ require_relative 'db_persistence'
 
 configure do
   enable :sessions
-  set :session_secret, ENV.fetch('SESSION_SECRET') { SecureRandom.hex(64) }    # ENV is a Ruby class. Fetch returns env variable with the name provided in (). if
-  set :erb, escape_html: true                                                  # no such var then the name is yelded to the block, block executed and the result of block is returned
+  set :session_secret, ENV.fetch('SESSION_SECRET') {
+                         SecureRandom.hex(64)
+                       }
+  set :erb, escape_html: true
 end
 
 configure(:development) do
