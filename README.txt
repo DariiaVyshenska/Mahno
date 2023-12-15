@@ -7,7 +7,6 @@ What you can do using this app:
 - Change your personal user information (email and/or password, location, phone, skills)
 - search for people with specific skill.
 - Open or close requests for help based on specific skill.
-- a lot of features yet to be implemented. However, I've decided to open this project for the public for the duration of my job hunt.
 
 Information on how to start this application
 - To run this application (in a development mode), you’ll need to have PostgreSQL, ruby, and bundler installed on your computer.
